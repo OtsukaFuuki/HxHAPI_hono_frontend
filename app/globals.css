@@ -24,3 +24,42 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* モーダルのキャラ切替アニメーション（次へ＝右から、前へ＝左からスライド＋フェード） */
+@keyframes slide-next {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.anim-slide-next {
+  animation: slide-next 0.25s ease-out;
+}
+
+.anim-slide-prev {
+  animation: slide-prev 0.25s ease-out;
+}
+
+/* 「動きを減らす」設定の端末ではアニメーションを無効化 */
+@media (prefers-reduced-motion: reduce) {
+  .anim-slide-next,
+  .anim-slide-prev {
+    animation: none;
+  }
+}

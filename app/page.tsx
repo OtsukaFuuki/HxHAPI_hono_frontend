@@ -83,6 +83,23 @@ export default function Home() {
     setVisibleCount(PAGE_SIZE);
   };
 
+  // モーダルで表示中のキャラが、いま表示している一覧（filtered）の何番目か。
+  const selectedIndex = selected
+    ? filtered.findIndex((c) => c.id === selected.id)
+    : -1;
+
+  // 前後のキャラへ移動。端まで来たら反対側へループする。
+  const goPrev = () => {
+    if (selectedIndex < 0 || filtered.length === 0) return;
+    const i = (selectedIndex - 1 + filtered.length) % filtered.length;
+    setSelected(filtered[i]);
+  };
+  const goNext = () => {
+    if (selectedIndex < 0 || filtered.length === 0) return;
+    const i = (selectedIndex + 1) % filtered.length;
+    setSelected(filtered[i]);
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-5xl px-4 py-10">
@@ -185,6 +202,8 @@ export default function Home() {
         <CharacterModal
           character={selected}
           onClose={() => setSelected(null)}
+          onPrev={goPrev}
+          onNext={goNext}
         />
       )}
     </main>

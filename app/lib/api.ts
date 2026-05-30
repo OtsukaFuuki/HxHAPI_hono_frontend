@@ -1,7 +1,22 @@
 // バックエンド(Cloudflare Workers)の公開URL
 export const API_BASE = "https://hxhapi.tully0302.workers.dev";
 
-// APIが返すキャラクター1件の型。バックエンドの Character と同じ形にする
+// 念能力に含まれる個別の技。
+export type Technique = {
+  name: string;
+  reading?: string; // 漢字技名の読み（純カタカナ技など読みが無い場合は省略）
+  description: string;
+};
+
+// キャラクターの念能力。複数の技を持つ。
+export type NenAbility = {
+  name: string;
+  reading: string;
+  description: string;
+  techniques: Technique[];
+};
+
+// APIが返すキャラクター1件の型。バックエンドの Charactor と同じ形にする。
 export type Character = {
   id: number;
   name: string;
@@ -10,6 +25,10 @@ export type Character = {
   description: string;
   imageUrl: string; // 例: "/images/gon.jpg"（APIから見た相対パス）
   debutArc: string;
+  // 以下は任意。データが無いキャラでは省略される。
+  englishName?: string;
+  gender?: string;
+  nenAbility?: NenAbility;
 };
 
 // SWR に渡す共通の取得関数。レスポンスを JSON に変換して返す。
