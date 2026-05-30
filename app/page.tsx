@@ -1,6 +1,6 @@
 "use client"; // SWR・状態・イベントを使うため、このページはクライアントコンポーネントにする
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import {
   API_BASE,
@@ -11,6 +11,9 @@ import {
 } from "./lib/api";
 import CharacterCard from "./components/CharacterCard";
 import CharacterModal from "./components/CharacterModal";
+
+const PAGE_SIZE = 20;
+const LOAD_DELAY_MS = 300;
 
 export default function Home() {
   // 一覧APIを叩く。data=キャラの配列, error=失敗, isLoading=取得中
@@ -28,15 +31,17 @@ export default function Home() {
   // クリックされたキャラ。null ならモーダルは閉じている。
   const [selected, setSelected] = useState<Character | null>(null);
 
-  // 「もっと見る」用。最初は20件だけ表示し、押すたびに20件ずつ増やす。
-  const PAGE_SIZE = 20;
+  // 無限スクロール用。最初は20件だけ表示し、末尾まで来たら20件ずつ増やす。
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // 検索語・絞り込みを変えたら、表示は先頭の20件に戻す。
   // （状態を更新するときに毎回リセットを挟むためのラッパー）
   const updateFilter = (set: (v: string) => void) => (v: string) => {
     set(v);
     setVisibleCount(PAGE_SIZE);
+    setIsLoadingMore(false);
   };
 
   // プルダウンの選択肢を、取得したデータから動的に作る。
@@ -71,6 +76,33 @@ export default function Home() {
   const visible = filtered.slice(0, visibleCount);
   const hasMore = filtered.length > visibleCount;
 
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasMore || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setIsLoadingMore(true);
+      },
+      { rootMargin: "0px 0px 40px" }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore]);
+
+  useEffect(() => {
+    if (!isLoadingMore) return;
+
+    const timer = window.setTimeout(() => {
+      setVisibleCount((count) => Math.min(count + PAGE_SIZE, filtered.length));
+      setIsLoadingMore(false);
+    }, LOAD_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [filtered.length, isLoadingMore]);
+
   // 何か絞り込みが掛かっているか（クリアボタンの活性判定に使う）
   const isFiltering =
     query !== "" || nen !== "" || affiliation !== "" || arc !== "";
@@ -81,6 +113,7 @@ export default function Home() {
     setAffiliation("");
     setArc("");
     setVisibleCount(PAGE_SIZE);
+    setIsLoadingMore(false);
   };
 
   // モーダルで表示中のキャラが、いま表示している一覧（filtered）の何番目か。
@@ -176,16 +209,18 @@ export default function Home() {
           </div>
         )}
 
-        {/* もっと見る（まだ続きがあるときだけ） */}
+        {/* 末尾が近づいたら自動で追加表示する */}
         {data && hasMore && (
-          <div className="mt-8 text-center">
-            <button
-              type="button"
-              onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-              className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100"
-            >
-              もっと見る（残り {filtered.length - visibleCount} 件）
-            </button>
+          <div
+            ref={loadMoreRef}
+            className="mt-8 flex justify-center py-4 text-sm text-gray-500"
+          >
+            {isLoadingMore && (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+                さらに読み込み中...
+              </span>
+            )}
           </div>
         )}
 
